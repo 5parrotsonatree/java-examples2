@@ -1,19 +1,20 @@
-FROM microsoft/dotnet:2.0-sdk AS build
+FROM maven:3-jdk-8-alpine AS build
+
 WORKDIR /app
 
 # Copy everything else and build
 COPY . ./
-RUN dotnet restore
+WORKDIR /app/httpexample
 
-# Build the specific project and output it into /app/out for KintoHub to process
-WORKDIR /app/{Enter-Project-Folder}
-RUN dotnet publish -c Release -o ../out
+RUN mvn clean compile assembly:single
+RUN mkdir /app/out
+RUN mv ./target/start-jar-with-dependencies.jar /app/out/start-jar-with-dependencies.jar
 
 # Runtime image
-FROM microsoft/dotnet:2.0-runtime
+FROM openjdk:8-jre-alpine
 WORKDIR /app
 COPY --from=build /app/out .
 
 EXPOSE 80
 
-ENTRYPOINT ["dotnet", "{Enter-Project-Output}.dll"]
+ENTRYPOINT ["java", "-jar", "start-jar-with-dependencies.jar"]
